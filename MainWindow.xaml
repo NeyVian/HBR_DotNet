@@ -1,0 +1,20 @@
+﻿<Window x:Class="HBR.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HBR"
+        mc:Ignorable="d"
+        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight" ShowInTaskbar="False" WindowStyle="None" Height="30" AllowsTransparency="True" Topmost="True">
+    <Window.Background>
+        <SolidColorBrush Opacity="0" Color="Magenta"/>
+    </Window.Background>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180" />
+            <ColumnDefinition Width="40" />
+        </Grid.ColumnDefinitions>
+        <Button x:Name="btnReco" Height="30" Cursor="Hand">RECONNECT</Button>
+        <Button x:Name="btnClose" Grid.Column="1" Height="30" Margin="3,0,0,0" Cursor="Hand">X</Button>
+    </Grid>
+</Window>
