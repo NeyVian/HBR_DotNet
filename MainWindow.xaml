@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HBR"
         mc:Ignorable="d"
-        Title="MainWindow" ResizeMode="NoResize" SizeToContent="WidthAndHeight" ShowInTaskbar="False" WindowStyle="None" Height="30" AllowsTransparency="True" Topmost="True">
+        Title="HBR" ResizeMode="NoResize" SizeToContent="WidthAndHeight" ShowInTaskbar="False" WindowStyle="None" Height="30" AllowsTransparency="True" Topmost="True">
     <Window.Background>
         <SolidColorBrush Opacity="0" Color="Magenta"/>
     </Window.Background>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180" />
+            <ColumnDefinition Width="130" />
             <ColumnDefinition Width="40" />
         </Grid.ColumnDefinitions>
         <Button x:Name="btnReco" Height="30" Cursor="Hand">RECONNECT</Button>
