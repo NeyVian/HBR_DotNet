@@ -23,10 +23,11 @@ namespace HBR
     /// </summary>
     public partial class MainWindow : Window
     {
-        int TcpPort = 3724;
+        string ProcessName = "";
+        string TcpPorts = "3724";
+        string MonitorId = "1";
         int OffsetRight = 20;
         int OffsetBottom = 60;
-        string ProcessName = "";
 
         public MainWindow()
         {
@@ -36,8 +37,7 @@ namespace HBR
             btnReco.Click += BtnReco_Click;
 
             if (!Administrator.isAdmin)
-            { 
-                btnReco.Background = Brushes.Red;
+            {
                 btnReco.IsEnabled = false;
                 btnReco.Content = "Run as Administrator !";
             }
@@ -50,11 +50,11 @@ namespace HBR
 
         }
 
-        void UpdateTcpPort(KeyValueConfigurationCollection settings)
+        void UpdateTcpPorts(KeyValueConfigurationCollection settings)
         {
-            if (settings.AllKeys.Contains("TcpPort"))
+            if (settings.AllKeys.Contains("TcpPorts"))
             {
-                int.TryParse(settings["TcpPort"].Value, out TcpPort);
+                TcpPorts = settings["TcpPorts"].Value;
             }
         }
 
@@ -82,6 +82,14 @@ namespace HBR
             }
         }
 
+        void UpdateMonitorId(KeyValueConfigurationCollection settings)
+        {
+            if (settings.AllKeys.Contains("Monitor"))
+            {
+                MonitorId = settings["Monitor"].Value;
+            }
+        }
+
         void ReadAllSettings()
         {
             var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -90,10 +98,11 @@ namespace HBR
             {
                 if (settings.Count > 0)
                 {
-                    UpdateTcpPort(settings);
+                    UpdateProcessName(settings);
+                    UpdateTcpPorts(settings);
+                    UpdateMonitorId(settings);
                     UpdateOffsetRight(settings);
                     UpdateOffsetBottom(settings);
-                    UpdateProcessName(settings);
                 }
             }
             catch (ConfigurationErrorsException)
@@ -106,6 +115,11 @@ namespace HBR
         {
             var width = SystemParameters.PrimaryScreenWidth;
             var height = SystemParameters.PrimaryScreenHeight;
+            if ("2".Equals(MonitorId))
+            {
+                width = SystemParameters.VirtualScreenWidth;
+                height = SystemParameters.VirtualScreenHeight;
+            }
             this.Top = height - this.Height - OffsetBottom;
             this.Left = width - this.Width - OffsetRight;
         }
@@ -117,7 +131,7 @@ namespace HBR
 
         private void BtnReco_Click(object sender, RoutedEventArgs e)
         {
-            var c = ConnectionManagement.SearchConnection(ProcessName, TcpPort);
+            var c = ConnectionManagement.SearchConnection(ProcessName, TcpPorts);
             if (!string.IsNullOrEmpty(c.remoteAddress))
             { 
                 ConnectionManagement.CloseConnection(c);

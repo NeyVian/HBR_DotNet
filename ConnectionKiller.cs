@@ -146,10 +146,8 @@ namespace ConnectionKiller
             return ptr;
         }
 
-        public static Connection SearchConnection(string process, int port)
+        public static Connection SearchConnection(string process, string hs_ports)
         {
-            var needlePort = string.Format(":{0}", port);
-
             Process cmd = new Process();
             cmd.StartInfo.FileName = "netstat.exe";
             cmd.StartInfo.WorkingDirectory = "c:/windows/system32";
@@ -170,24 +168,25 @@ namespace ConnectionKiller
                     
                 foreach (string row in content.Split("\r\n"))
                 {
-                    if (row.Contains(needlePort) && row.Contains("ESTABLISHED"))
+                    var pattern = "\\s*TCP\\s*(?<laddr>\\S*):(?<lport>\\S*)\\s*(?<raddr>\\S*):(?<rport>\\S*)\\s*ESTABLISHED\\s*(?<pid>\\S*)";
+                    
+                    if (!row.Contains("ESTABLISHED", StringComparison.InvariantCultureIgnoreCase)) continue;
+                    
+                    var matches = Regex.Matches(row, pattern, RegexOptions.IgnoreCase);
+                    if (matches.Count > 0 && matches[0].Groups.Count.Equals(6))
                     {
-                        var pattern = "\\s*TCP\\s*(\\S*):(\\S*)\\s*(\\S*):(\\S*)\\s*ESTABLISHED\\s*(\\S*)";
-                        var matches = Regex.Matches(row, pattern, RegexOptions.IgnoreCase);
-                        if (matches.Count > 0 && matches[0].Groups.Count.Equals(6))
+                        var items = matches[0].Groups;
+                        var rport = items["rport"].ToString();
+                        var pid = int.Parse(items["pid"].ToString());
+                        var pname = (Process.GetProcessById(pid)).ProcessName;
+                        if (hs_ports.Contains(rport) &&
+                            process.Equals(pname, StringComparison.InvariantCultureIgnoreCase))
                         {
-                            var result = matches[0].Groups;
-                            var laddr = result[1].ToString();
-                            var lport = int.Parse(result[2].ToString());
-                            var raddr = result[3].ToString();
-                            var rport = int.Parse(result[4].ToString());
-                            var pid = int.Parse(result[5].ToString());
-                            var pname = (Process.GetProcessById(pid)).ProcessName;
+                            var laddr = items["laddr"].ToString();
+                            var lport = int.Parse(items["lport"].ToString());
+                            var raddr = items["raddr"].ToString();
 
-                            if (process.Equals(pname, StringComparison.OrdinalIgnoreCase))
-                            {
-                                return new Connection(laddr, lport, raddr, rport);
-                            }
+                            return new Connection(laddr, lport, raddr, int.Parse(rport));
                         }
                     }
                 }
