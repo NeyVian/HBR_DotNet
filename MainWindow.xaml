@@ -10,11 +10,9 @@
         <SolidColorBrush Opacity="0" Color="Magenta"/>
     </Window.Background>
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="130" />
-            <ColumnDefinition Width="40" />
-        </Grid.ColumnDefinitions>
-        <Button x:Name="btnReco" Height="30" Cursor="Hand">RECONNECT</Button>
-        <Button x:Name="btnClose" Grid.Column="1" Height="30" Margin="3,0,0,0" Cursor="Hand">X</Button>
+        <DockPanel Height="30">
+            <Button x:Name="btnReco" Width="130" Cursor="Hand">RECONNECT</Button>
+            <Button x:Name="btnClose"  Width="40" Margin="3,0,0,0" Cursor="Hand">X</Button>
+        </DockPanel>
     </Grid>
 </Window>

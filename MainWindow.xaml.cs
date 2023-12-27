@@ -23,11 +23,14 @@ namespace HBR
     /// </summary>
     public partial class MainWindow : Window
     {
-        string ProcessName = "";
-        string TcpPorts = "3724";
-        string MonitorId = "1";
-        int OffsetRight = 20;
-        int OffsetBottom = 60;
+        readonly Dictionary<string, string> AppSettings = new ()
+        {
+            { "ProcessName", "Hearthstone" },
+            { "TcpPorts", "3724, 1119" },
+            { "MonitorId", "1" },
+            { "OffsetRight", "20" },
+            { "OffsetBottom", "60" }
+        };
 
         public MainWindow()
         {
@@ -50,43 +53,14 @@ namespace HBR
 
         }
 
-        void UpdateTcpPorts(KeyValueConfigurationCollection settings)
+        void UpdateSettings(KeyValueConfigurationCollection settings)
         {
-            if (settings.AllKeys.Contains("TcpPorts"))
+            foreach (string key in AppSettings.Keys)
             {
-                TcpPorts = settings["TcpPorts"].Value;
-            }
-        }
-
-        void UpdateOffsetRight(KeyValueConfigurationCollection settings)
-        {
-            if (settings.AllKeys.Contains("OffsetRight"))
-            {
-                int.TryParse(settings["OffsetRight"].Value, out OffsetRight);
-            }
-        }
-
-        void UpdateOffsetBottom(KeyValueConfigurationCollection settings)
-        {
-            if (settings.AllKeys.Contains("OffsetBottom"))
-            {
-                int.TryParse(settings["OffsetBottom"].Value, out OffsetBottom);
-            }
-        }
-
-        void UpdateProcessName(KeyValueConfigurationCollection settings)
-        {
-            if (settings.AllKeys.Contains("ProcessName"))
-            {
-                ProcessName = settings["ProcessName"].Value;
-            }
-        }
-
-        void UpdateMonitorId(KeyValueConfigurationCollection settings)
-        {
-            if (settings.AllKeys.Contains("Monitor"))
-            {
-                MonitorId = settings["Monitor"].Value;
+                if (settings.AllKeys.Contains(key))
+                {
+                    AppSettings[key] = settings[key].Value;
+                }
             }
         }
 
@@ -98,11 +72,7 @@ namespace HBR
             {
                 if (settings.Count > 0)
                 {
-                    UpdateProcessName(settings);
-                    UpdateTcpPorts(settings);
-                    UpdateMonitorId(settings);
-                    UpdateOffsetRight(settings);
-                    UpdateOffsetBottom(settings);
+                    UpdateSettings(settings);
                 }
             }
             catch (ConfigurationErrorsException)
@@ -115,13 +85,13 @@ namespace HBR
         {
             var width = SystemParameters.PrimaryScreenWidth;
             var height = SystemParameters.PrimaryScreenHeight;
-            if ("2".Equals(MonitorId))
+            if ("2".Equals(AppSettings["MonitorId"]))
             {
                 width = SystemParameters.VirtualScreenWidth;
                 height = SystemParameters.VirtualScreenHeight;
             }
-            this.Top = height - this.Height - OffsetBottom;
-            this.Left = width - this.Width - OffsetRight;
+            this.Top = height - this.Height - int.Parse(AppSettings["OffsetBottom"]);
+            this.Left = width - this.Width - int.Parse(AppSettings["OffsetRight"]);
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e)
@@ -131,9 +101,13 @@ namespace HBR
 
         private void BtnReco_Click(object sender, RoutedEventArgs e)
         {
-            var c = ConnectionManagement.SearchConnection(ProcessName, TcpPorts);
-            if (!string.IsNullOrEmpty(c.remoteAddress))
-            { 
+            var c = ConnectionManagement.SearchConnection(
+                AppSettings["ProcessName"],
+                AppSettings["TcpPorts"]);
+            
+            if (c is not null)
+            {
+                Console.WriteLine("Reconnect");
                 ConnectionManagement.CloseConnection(c);
             }
         }

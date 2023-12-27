@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection.Metadata;
@@ -20,13 +21,23 @@ namespace ConnectionKiller
         public string remoteAddress;
         public int localPort;
         public int remotePort;
+        public DateTime creationDate;
 
-        public Connection(string lAddr, int lPort, string rAddr, int rPort)
+        public static Connection MostRecent(Connection a, Connection b)
+        {
+            int res = DateTime.Compare(a.creationDate, b.creationDate);
+            if (res < 0) return b;
+            return a;
+        }
+
+        public Connection(string lAddr, string lPort, string rAddr, string rPort, string cDate)
         {
             localAddress = lAddr;
-            localPort = lPort;
+            localPort = int.Parse(lPort);
             remoteAddress = rAddr;
-            remotePort = rPort;
+            remotePort = int.Parse(rPort);
+            creationDate = DateTime.Parse(cDate);
+
         }
     }
 
@@ -107,7 +118,7 @@ namespace ConnectionKiller
         public static void CloseConnection(string localAddress, int localPort, string remoteAddress, int remotePort)
         {
             try
-            {
+            { 
                 //if (parts.Length != 4) throw new Exception("Invalid connectionstring - use the one provided by Connections.");
                 string[] locaddr = localAddress.Split('.');
                 string[] remaddr = remoteAddress.Split('.');
@@ -146,12 +157,15 @@ namespace ConnectionKiller
             return ptr;
         }
 
-        public static Connection SearchConnection(string process, string hs_ports)
+        public static Connection? SearchConnection(
+            string process, string hs_ports)
         {
-            Process cmd = new Process();
-            cmd.StartInfo.FileName = "netstat.exe";
+            Connection? connCandidate = null;
+
+            Process cmd = new ();
+            cmd.StartInfo.FileName = "Powershell.Exe";
             cmd.StartInfo.WorkingDirectory = "c:/windows/system32";
-            cmd.StartInfo.Arguments = "-a -n -o";
+            cmd.StartInfo.Arguments = "Get-NetTCPConnection -State Established | Select-Object -Property OwningProcess, LocalAddress, LocalPort, RemoteADdress, RemotePort, CreationTime";
             cmd.StartInfo.RedirectStandardInput = true;
             cmd.StartInfo.RedirectStandardOutput = true;
             cmd.StartInfo.RedirectStandardError = true;
@@ -165,29 +179,39 @@ namespace ConnectionKiller
                 StreamReader stdError = cmd.StandardError;
                 var content = stdOutput.ReadToEnd() + stdError.ReadToEnd();
                 var exitStatus = cmd.ExitCode.ToString();
-                    
-                foreach (string row in content.Split("\r\n"))
-                {
-                    var pattern = "\\s*TCP\\s*(?<laddr>\\S*):(?<lport>\\S*)\\s*(?<raddr>\\S*):(?<rport>\\S*)\\s*ESTABLISHED\\s*(?<pid>\\S*)";
-                    
-                    if (!row.Contains("ESTABLISHED", StringComparison.InvariantCultureIgnoreCase)) continue;
-                    
-                    var matches = Regex.Matches(row, pattern, RegexOptions.IgnoreCase);
-                    if (matches.Count > 0 && matches[0].Groups.Count.Equals(6))
-                    {
-                        var items = matches[0].Groups;
-                        var rport = items["rport"].ToString();
-                        var pid = int.Parse(items["pid"].ToString());
-                        var pname = (Process.GetProcessById(pid)).ProcessName;
-                        if (hs_ports.Contains(rport) &&
-                            process.Equals(pname, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            var laddr = items["laddr"].ToString();
-                            var lport = int.Parse(items["lport"].ToString());
-                            var raddr = items["raddr"].ToString();
 
-                            return new Connection(laddr, lport, raddr, int.Parse(rport));
+                content = Regex.Replace(content, "\r\n\r\n", "|").Trim();
+                foreach (string row in content.Split("|"))
+                {
+                    var fields = row.Split("\r\n");
+                    if (fields is not null && fields.Length.Equals(6))
+                    {
+                        var sep = ": ";
+                        int pid = 0;
+                        if (!int.TryParse(fields[0].Split(sep)[1], out pid)) continue;
+                        var pname = (Process.GetProcessById(pid)).ProcessName;
+
+                        if (!process.Equals(pname, StringComparison.OrdinalIgnoreCase)) continue;
+
+                        var laddr = fields[1].Split(sep)[1];
+                        var lport = fields[2].Split(sep)[1];
+                        var raddr = fields[3].Split(sep)[1];
+                        var rport = fields[4].Split(sep)[1];
+                        var cdate = fields[5].Split(sep)[1];
+
+                        if (!hs_ports.Contains(rport)) continue;
+
+                        var c = new Connection(laddr, lport, raddr, rport, cdate);
+
+                        if (connCandidate is not null)
+                        {
+                            connCandidate = Connection.MostRecent(connCandidate, c);
                         }
+                        else
+                        {
+                            connCandidate = c;
+                        }
+
                     }
                 }
             }
@@ -196,7 +220,8 @@ namespace ConnectionKiller
                 Console.WriteLine(ex.Message);
             }
 
-            return new Connection("", 0, "", 0);
+            return connCandidate;
         }
+
     }
 }
